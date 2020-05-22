@@ -13,6 +13,7 @@ The project is created in a TDD fashion.
     1. Spring framework (dependency injection)
     1. Spring Boot
     1. Spring Web (not reactive) and REST
+1. Lombok
 1. Mockito
 
 ## Create project
@@ -43,6 +44,7 @@ The project is created in a TDD fashion.
 
     | Dependencies |
     |--------------|
+    | Lombok       |
     | Spring Web   |
 
     Click *Generate* to download the zip file
@@ -176,7 +178,18 @@ The project is created in a TDD fashion.
       jcenter()
     }
 
+    configurations {
+      compileOnly {
+        extendsFrom annotationProcessor
+      }
+    }
+
     dependencies {
+      /* Lombok */
+      compileOnly 'org.projectlombok:lombok'
+      annotationProcessor 'org.projectlombok:lombok'
+
+      /* Spring */
       implementation 'org.springframework.boot:spring-boot-starter-web'
       testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
@@ -292,6 +305,25 @@ The project is created in a TDD fashion.
 
     Any text will do here.
 
+    Running the application will now show the new banner
+
+    ```bash
+    $ ./gradlew bootRun
+
+    > Task :bootRun
+                     _                                             _
+                    | |                                           (_)
+      _ __ ___   ___| | __  _ __   __ _ _ __   ___ _ __   ___  ___ _ ___ ___  ___  _ __ ___
+     | '__/ _ \ / __| |/ / | '_ \ / _` | '_ \ / _ \ '__| / __|/ __| / __/ __|/ _ \| '__/ __|
+     | | | (_) | (__|   <  | |_) | (_| | |_) |  __/ |    \__ \ (__| \__ \__ \ (_) | |  \__ \
+     |_|  \___/ \___|_|\_\ | .__/ \__,_| .__/ \___|_|    |___/\___|_|___/___/\___/|_|  |___/
+                          | |         | |
+                          |_|         |_|
+    ...
+    ```
+
+    Use `[control] + [c]` to stop the application
+
 ## Return a random hand
 
 1. Project structure
@@ -299,7 +331,7 @@ The project is created in a TDD fashion.
     Clean the project to remove any artefacts produced by the build task before.
 
     ```bash
-    ./gradlew clean
+    $ ./gradlew clean
     ```
 
     The project structure should look like the following (easier to compare without the *build* folder)
@@ -421,48 +453,21 @@ The project is created in a TDD fashion.
     ```java
     package demo.games;
 
-    import java.util.Objects;
+    import lombok.AllArgsConstructor;
+    import lombok.Data;
+    import lombok.NoArgsConstructor;
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public class HandResponse {
-
       private Hand hand;
-
-      public HandResponse() {
-      }
-
-      public HandResponse( final Hand hand ) {
-        this.hand = hand;
-      }
-
-      public Hand getHand() {
-        return hand;
-      }
-
-      @Override
-      public boolean equals( final Object object ) {
-        if ( this == object ) {
-          return true;
-        }
-
-        if ( !( object instanceof HandResponse ) ) {
-          return false;
-        }
-
-        final HandResponse that = (HandResponse) object;
-        return hand == that.hand;
-      }
-
-      @Override
-      public int hashCode() {
-        return Objects.hash( hand );
-      }
-
-      @Override
-      public String toString() {
-        return String.format( "HandResponse{hand=%s}", hand );
-      }
     }
     ```
+
+    Note that my IntelliJ ignored Lombok annotations, despite having the plugin installed and the annotations enabled.  IntelliJ kept showing compiler errors as it was not picking up the generated constructor while the application compiles well with gradle.
+
+    ![IntelliJ Lombok](assets/images/IntelliJ%20Lombok.png)
 
     Run the test.  The test should run (the code should compile) but fail as we have nothing to handle the request.
 
@@ -473,13 +478,6 @@ The project is created in a TDD fashion.
 
     Game application > should return a random hand FAILED
         java.lang.AssertionError at GameApplicationTests.java:35
-    2020-04-27 12:34:56.895  INFO 5669 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
-
-    1 test completed, 1 failed
-
-    > Task :test FAILED
-
-    FAILURE: Build failed with an exception.
 
     ...
     ```
@@ -521,6 +519,90 @@ The project is created in a TDD fashion.
     4 actionable tasks: 2 executed, 2 up-to-date
     ```
 
+1. Create a random service
+
+    We can create a service and then have the random number as part of the service.  Having the random number generator part of the service will make the service harder to test.  Similar to a clock (or system-time), best to warp these in a thin service.
+
+    The following test is not usually required, but will make sure that our random generator will generate a fair distribution of numbers.
+
+    Create file: `src/test/java/demo/games/RandomServiceTest.java`
+
+    ```java
+    package demo.games;
+
+    import org.junit.jupiter.api.DisplayName;
+    import org.junit.jupiter.api.Test;
+
+    import static org.assertj.core.api.Assertions.assertThat;
+
+    @DisplayName( "Random service" )
+    public class RandomServiceTest {
+
+      @Test
+      @DisplayName( "should return a random int with a fair probability" )
+      public void shouldReturnARandomNumber() {
+
+        final int numberOfCandidates = 10;
+        final int sampleSize = numberOfCandidates * 1_000;
+
+        /* Retrieve a random number and count the occurrence */
+        final RandomService service = new RandomService();
+        final int[] candidateCounts = new int[numberOfCandidates];
+        for ( int i = 0; i < sampleSize; i++ ) {
+          final int randomNumber = service.nextInt( numberOfCandidates );
+          candidateCounts[randomNumber]++;
+        }
+
+        /* The expected counts for each hand */
+        final int expectedCount = sampleSize / numberOfCandidates;
+        final int buffer = Math.round( expectedCount * 0.1F );
+
+        /* Verify that each number has the same probability like any other */
+        for ( int i = 0; i < numberOfCandidates; i++ ) {
+          assertThat( candidateCounts[i] )
+            .isBetween( expectedCount - buffer, expectedCount + buffer );
+        }
+      }
+    }
+    ```
+
+    The above will not compile as we still need to create the service.
+
+    Create file: `src/main/java/demo/games/RandomService.java`
+
+    ```java
+    package demo.games;
+
+    import org.springframework.stereotype.Service;
+
+    import java.util.Random;
+
+    @Service
+    public class RandomService {
+
+      public int nextInt( int bound ) {
+        return randomNumber.nextInt( bound );
+      }
+
+      private final Random randomNumber = new Random();
+    }
+    ```
+
+    Run the test.  All tests should pass.
+
+    ```bash
+    $ ./gradlew test
+
+    ...
+
+    Random service > should return a random int with a fair probability PASSED
+    Game application > should return a random hand PASSED
+
+    ...
+    ```
+
+    Note that the new test can be **flaky**, as it depends on randomness of the [`Random` class](https://docs.oracle.com/en/java/javase/14/docs/api/java.base/java/util/Random.html).
+
 1. Create a service
 
     Create file: `src/test/java/demo/games/GameServiceTest.java`
@@ -531,35 +613,30 @@ The project is created in a TDD fashion.
     import org.junit.jupiter.api.DisplayName;
     import org.junit.jupiter.api.Test;
 
-    import static org.assertj.core.api.Assertions.assertThat;
+    import static org.junit.jupiter.api.Assertions.assertSame;
+    import static org.mockito.ArgumentMatchers.eq;
+    import static org.mockito.Mockito.mock;
+    import static org.mockito.Mockito.times;
+    import static org.mockito.Mockito.verify;
+    import static org.mockito.Mockito.when;
 
     @DisplayName( "Game service" )
     public class GameServiceTest {
 
       @Test
-      @DisplayName( "should return a random hand with a fair probability" )
+      @DisplayName( "should return a random hand based on the random number generated by the service" )
       public void shouldReturnARandomHand() {
-
-        final int sampleSize = 1000;
         final int numberOfCandidates = Hand.values().length;
+        final Hand expectedHand = Hand.ROCK;
 
-        /* Retrieve a random hand and count the occurrence */
-        final GameService service = new GameService();
-        final int[] candidateCounts = new int[numberOfCandidates];
-        for ( int i = 0; i < sampleSize; i++ ) {
-          final Hand hand = service.random();
-          candidateCounts[hand.ordinal()]++;
-        }
+        final RandomService randomService = mock( RandomService.class );
+        when( randomService.nextInt( eq( numberOfCandidates ) ) ).thenReturn( expectedHand.ordinal() );
 
-        /* The expected counts for each hand with some buffer */
-        final int expectedCount = sampleSize / numberOfCandidates;
-        final int buffer = Math.round( expectedCount * 0.075F );
+        final GameService service = new GameService( randomService );
+        final Hand hand = service.random();
+        assertSame( expectedHand, hand );
 
-        /* Verify that each hand has the same probability like any other */
-        for ( int i = 0; i < numberOfCandidates; i++ ) {
-          assertThat( candidateCounts[i] )
-            .isBetween( expectedCount - buffer, expectedCount + buffer );
-        }
+        verify( randomService, times( 1 ) ).nextInt( numberOfCandidates );
       }
     }
     ```
@@ -573,37 +650,37 @@ The project is created in a TDD fashion.
 
     import org.springframework.stereotype.Service;
 
-    import java.util.Random;
-
     @Service
     public class GameService {
 
-      public Hand random() {
-        final Hand[] candidates = Hand.values();
-        return candidates[randomNumber.nextInt( candidates.length )];
+      private final RandomService randomService;
+
+      public GameService( final RandomService randomService ) {
+        this.randomService = randomService;
       }
 
-      private final Random randomNumber = new Random();
+      public Hand random() {
+        final Hand[] candidates = Hand.values();
+        return candidates[randomService.nextInt( candidates.length )];
+      }
     }
     ```
 
-    Run the test.  Both tests should pass.
+    Run the test.  All tests should pass.
 
     ```bash
     $ ./gradlew test
 
-    > Task :test
-
-    Game service > should return a random hand with a fair probability PASSED
-
     ...
+
+    Random service > should return a random int with a fair probability PASSED
+
+    Game service > should return a random hand based on the random number generated by the service PASSED
 
     Game application > should return a random hand PASSED
 
     ...
     ```
-
-    Note that the new test can be **flaky**, as it depends on randomness of the [`Random` class](https://docs.oracle.com/en/java/javase/14/docs/api/java.base/java/util/Random.html).
 
 1. Use the service from within the controller
 
@@ -668,6 +745,8 @@ The project is created in a TDD fashion.
     ...
     ```
 
+    Use the `GameService` from within the controller
+
     Update file: `src/main/java/demo/games/GameController.java`
 
     ```java
@@ -698,6 +777,18 @@ The project is created in a TDD fashion.
 
     ```bash
     $ ./gradlew test
+
+    ...
+
+    Game controller > should return the hand provided by the service PASSED
+
+    Random service > should return a random int with a fair probability PASSED
+
+    Game service > should return a random hand based on the random number generated by the service PASSED
+
+    Game application > should return a random hand PASSED
+
+    ...
     ```
 
 1. Project structure
@@ -705,44 +796,46 @@ The project is created in a TDD fashion.
     Clean the project to remove any artefacts produced by the build task before
 
     ```bash
-    ./gradlew clean
+    $ ./gradlew clean
     ```
 
     The project structure after the above changed should look like the following (easier to compare without the *build* folder)
 
     ```bash
     $ tree .
-      .
-      ├── build.gradle
-      ├── gradle
-      │   └── wrapper
-      │       ├── gradle-wrapper.jar
-      │       └── gradle-wrapper.properties
-      ├── gradlew
-      ├── gradlew.bat
-      ├── settings.gradle
-      └── src
-          ├── main
-          │   ├── java
-          │   │   └── demo
-          │   │       └── games
-          │   │           ├── GameApplication.java
-          │   │           ├── GameController.java
-          │   │           ├── GameService.java
-          │   │           ├── Hand.java
-          │   │           └── HandResponse.java
-          │   └── resources
-          │       ├── application.yaml
-          │       └── banner.txt
-          └── test
-              └── java
-                  └── demo
-                      └── games
-                          ├── GameApplicationTests.java
-                          ├── GameControllerTest.java
-                          └── GameServiceTest.java
+    .
+    ├── build.gradle
+    ├── gradle
+    │   └── wrapper
+    │       ├── gradle-wrapper.jar
+    │       └── gradle-wrapper.properties
+    ├── gradlew
+    ├── gradlew.bat
+    ├── settings.gradle
+    └── src
+        ├── main
+        │   ├── java
+        │   │   └── demo
+        │   │       └── games
+        │   │           ├── GameApplication.java
+        │   │           ├── GameController.java
+        │   │           ├── GameService.java
+        │   │           ├── Hand.java
+        │   │           ├── HandResponse.java
+        │   │           └── RandomService.java
+        │   └── resources
+        │       ├── application.yaml
+        │       └── banner.txt
+        └── test
+            └── java
+                └── demo
+                    └── games
+                        ├── GameApplicationTests.java
+                        ├── GameControllerTest.java
+                        ├── GameServiceTest.java
+                        └── RandomServiceTest.java
 
-      12 directories, 16 files
+    12 directories, 18 files
     ```
 
 ## Build and run the application
