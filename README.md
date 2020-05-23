@@ -13,6 +13,7 @@ The project is created in a TDD fashion.
     1. Spring framework (dependency injection)
     1. Spring Boot
     1. Spring Web (not reactive) and REST
+1. OpenApi (Swagger)
 1. Lombok
 1. Mockito
 
@@ -490,13 +491,13 @@ The project is created in a TDD fashion.
     package demo.games;
 
     import org.springframework.stereotype.Controller;
-    import org.springframework.web.bind.annotation.RequestMapping;
+    import org.springframework.web.bind.annotation.GetMapping;
     import org.springframework.web.bind.annotation.ResponseBody;
 
     @Controller
     public class GameController {
 
-      @RequestMapping( "/hand" )
+      @GetMapping( "/hand" )
       public @ResponseBody HandResponse hand() {
         final Hand hand = Hand.ROCK;
         return new HandResponse( hand );
@@ -753,7 +754,7 @@ The project is created in a TDD fashion.
     package demo.games;
 
     import org.springframework.stereotype.Controller;
-    import org.springframework.web.bind.annotation.RequestMapping;
+    import org.springframework.web.bind.annotation.GetMapping;
     import org.springframework.web.bind.annotation.ResponseBody;
 
     @Controller
@@ -765,7 +766,7 @@ The project is created in a TDD fashion.
         this.service = service;
       }
 
-      @RequestMapping( "/hand" )
+      @GetMapping( "/hand" )
       public @ResponseBody HandResponse hand() {
         final Hand hand = service.random();
         return new HandResponse( hand );
@@ -863,6 +864,36 @@ The response should be random
     ```json
     {"hand":"ROCK"}
     ```
+## OpenApi
+
+1. Add new dependency
+
+    ```groovy
+    dependencies {
+      /* Spring/OpenaApi */
+      implementation 'org.springdoc:springdoc-openapi-ui:1.3.9'
+    }
+    ```
+
+1. Build the application
+
+    ```bash
+    $ ./gradlew clean build
+    ```
+
+1. Run the application
+
+    ```bash
+    $ java -jar build/libs/rock-paper-scissors.jar
+    ```
+
+1. Access the OpenApi from browser: [http://localhost:8080/swagger-ui/index.html?configUrl=/v3/api-docs/swagger-config](http://localhost:8080/swagger-ui/index.html?configUrl=/v3/api-docs/swagger-config)
+
+    ![OpenApi](assets/images/OpenApi.png)
+
+    You can try the API too.
+
+    ![OpenApi Execution](assets/images/OpenApi%20Execution.png)
 
 ## Dockerize game
 
