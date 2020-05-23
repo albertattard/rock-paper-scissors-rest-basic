@@ -866,7 +866,7 @@ The response should be random
     ```
 ## OpenApi
 
-1. Add new dependency
+1. Add [new dependency](https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-ui)
 
     ```groovy
     dependencies {
