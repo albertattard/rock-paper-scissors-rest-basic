@@ -719,7 +719,7 @@ The project is created in a TDD fashion.
       @Test
       @DisplayName( "should return the hand provided by the service" )
       public void shouldReturnTheHandProvidedByTheService() throws Exception {
-        final Hand hand = Hand.PAPER;
+        final Hand hand = Hand.ROCK;
         when( service.random() ).thenReturn( hand );
 
         mockMvc.perform( get( "/hand" ) )
