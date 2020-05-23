@@ -429,7 +429,8 @@ The project is created in a TDD fashion.
           new HandResponse( Hand.SCISSORS )
         );
 
-        assertThat( this.restTemplate.getForObject( "http://localhost:" + port + "/hand", HandResponse.class ) )
+        final String url = String.format( "http://localhost:%d/hand", port );
+        assertThat( restTemplate.getForObject( url, HandResponse.class ) )
           .isIn( candidates );
       }
     }
