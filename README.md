@@ -1,4 +1,4 @@
-# Rock Paper Scissors
+# Rock Paper Scissors Game - Random Response
 
 A simple [Rock Paper Scissors game](https://en.wikipedia.org/wiki/Rock_paper_scissors) build on Spring Boot as REST service.  This is a very primitive implementation of the Rock Paper Scissors game.  It simply returns a random hand between rock, paper or scissors when queried through the single endpoint.
 
