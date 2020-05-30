@@ -467,10 +467,6 @@ The project is created in a TDD fashion.
     }
     ```
 
-    Note that my IntelliJ ignored Lombok annotations, despite having the plugin installed and the annotations enabled.  IntelliJ kept showing compiler errors as it was not picking up the generated constructor while the application compiles well with gradle.
-
-    ![IntelliJ Lombok](assets/images/IntelliJ%20Lombok.png)
-
     Run the test.  The test should run (the code should compile) but fail as we have nothing to handle the request.
 
     ```bash
