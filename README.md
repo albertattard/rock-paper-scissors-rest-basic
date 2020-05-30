@@ -7,15 +7,16 @@ The project is created in a TDD fashion.
 ## Technology stack
 
 1. Java 14
-1. Gradle (single project)
-1. Docker
-1. Spring
-    1. Spring framework (dependency injection)
-    1. Spring Boot
-    1. Spring Web (not reactive) and REST
-1. OpenApi (Swagger)
-1. Lombok
-1. Mockito
+1. [Gradle](https://gradle.org/) (*single project*)
+1. [Docker](https://www.docker.com/)
+1. [Spring](https://spring.io/)
+    1. [Spring framework](https://docs.spring.io/spring/docs/current/spring-framework-reference/core.html) (*dependency injection*)
+    1. [Spring Boot](https://spring.io/projects/spring-boot)
+    1. [Spring Web](https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html) (not reactive) and [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
+1. [OpenApi](https://www.openapis.org/) (*Swagger*)
+1. [Lombok](https://projectlombok.org/) ([Lombok Plugin](https://github.com/mplushnikov/lombok-intellij-plugin))
+1. [PIT](https://pitest.org/)
+1. [Mockito](https://site.mockito.org/)
 
 ## Create project
 
@@ -167,6 +168,9 @@ The project is created in a TDD fashion.
 
       id 'org.springframework.boot' version '2.3.0.RELEASE'
       id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+
+      /* PIT Mutation Testing */
+      id 'info.solidsoft.pitest' version '1.5.1'
     }
 
     java {
@@ -195,6 +199,9 @@ The project is created in a TDD fashion.
       testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
       }
+
+      /* Spring/OpenaApi */
+      implementation 'org.springdoc:springdoc-openapi-ui:1.3.9'
     }
 
     test {
@@ -202,6 +209,16 @@ The project is created in a TDD fashion.
       testLogging {
         events = ['FAILED', 'PASSED', 'SKIPPED', 'STANDARD_OUT']
       }
+    }
+
+    pitest {
+      targetClasses = ['demo.games.*']
+      timestampedReports = false
+      junit5PluginVersion = '0.12'
+    }
+
+    build {
+      dependsOn 'pitest'
     }
     ```
 
