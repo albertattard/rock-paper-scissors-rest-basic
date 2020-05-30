@@ -160,7 +160,9 @@ The project is created in a TDD fashion.
 
     ![Rename the tests to GameApplicationTests](assets/images/Rename%20Tests%20to%20GameApplicationTests.png)
 
-1. Update file: `build.gradle`
+1. Configure Gradle
+
+    Update file: `build.gradle`
 
     ```groovy
     plugins {
@@ -168,9 +170,6 @@ The project is created in a TDD fashion.
 
       id 'org.springframework.boot' version '2.3.0.RELEASE'
       id 'io.spring.dependency-management' version '1.0.9.RELEASE'
-
-      /* PIT Mutation Testing */
-      id 'info.solidsoft.pitest' version '1.5.1'
     }
 
     java {
@@ -209,16 +208,6 @@ The project is created in a TDD fashion.
       testLogging {
         events = ['FAILED', 'PASSED', 'SKIPPED', 'STANDARD_OUT']
       }
-    }
-
-    pitest {
-      targetClasses = ['demo.games.*']
-      timestampedReports = false
-      junit5PluginVersion = '0.12'
-    }
-
-    build {
-      dependsOn 'pitest'
     }
     ```
 
@@ -853,6 +842,57 @@ The project is created in a TDD fashion.
     12 directories, 18 files
     ```
 
+## Mutation testing
+
+1. Configure Lombok
+
+    Create file `lombok.config`
+
+    ```lombok.config
+    lombok.addLombokGeneratedAnnotation = true
+    ```
+
+    The above [configuration will instruct Lombok to add an annotation to the enhanced classes](https://projectlombok.org/features/configuration) which are then excluded from mutation testing.  This provides more effective mutation testing results.
+
+1. Add and configure [new plugin](https://plugins.gradle.org/plugin/info.solidsoft.pitest)
+
+    Update file: `build.gradle`
+
+    ```groovy
+    plugins {
+      /* PIT Mutation Testing */
+      id 'info.solidsoft.pitest' version '1.5.1'
+    }
+
+    pitest {
+      targetClasses = ['demo.games.*']
+      timestampedReports = false
+      junit5PluginVersion = '0.12'
+    }
+
+    build {
+      dependsOn 'pitest'
+    }
+    ```
+
+    Mutation testing will run every time the `build` task runs.
+
+1. Build the application
+
+    ```bash
+    $ ./gradlew clean build
+    ```
+
+    We can run the mutation testing using the `pitest` task instead.
+
+1. Verify the test coverage
+
+    Open the generated report: `build/reports/pitest/demo.games/index.html`
+
+    ![Pit Test Coverage Report](assets/images/Pit%20Test%20Coverage%20Report.png)
+
+    Mutation testing verifies the effectiveness of our test coverage.  The above image shows that each line of code is covered by a test and changing it will break a test.
+
 ## Build and run the application
 
 1. Build the application
@@ -881,6 +921,8 @@ The response should be random
 ## OpenApi
 
 1. Add [new dependency](https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-ui)
+
+    Update `build.gradle`
 
     ```groovy
     dependencies {
